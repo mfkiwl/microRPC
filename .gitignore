@@ -1,0 +1,5 @@
+.vscode/
+lib/
+build/
+test/build/
+
