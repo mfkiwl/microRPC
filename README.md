@@ -156,6 +156,7 @@ Why is this bad? Well as soon as your program requires more than a simple do thi
 If the benefits are not imidiatly obvious, consider this; you have a system with 100 config parameters, wifi ssids, pid gains ect. You could write 100 functions and 100 case statements to handle them, or you could define hash table or linked list of config parameters and write a single function to get/set them all. The developer can then expose this function by definign a service, and the client can now call the function through a single message and get a single response.
 
 Now also notice that in the above example the exposed functions accept differnty arguemtns and reutn different messages, this is all handled by the interface. The interface's update,execute and respond functions are the only thing that needs to be changed if the message format changes. The developer can then focus on the funcionaly of the system and not how to parse and format each message in a way that is compatible with the client.
+ 
 
 
 

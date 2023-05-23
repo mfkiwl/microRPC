@@ -7,7 +7,7 @@
 // Lookup Table Definitions
 #define NUM_NODES  10 //  Number of nodes in the Lookup Table
 #define MAX_MEMBERS  4 // Maximum number of members per node
-#define KEY_LEN  4 // Maximum length of a key
+#define KEY_LEN  5 // Maximum length of a key
 
 
 
@@ -40,13 +40,13 @@ void initLookupTable(LookupTable *table, int numNodes){
 void createNode(Node *node, char *key){
     uCcpy(node->key,key); // Copy to the key as we need to keep the key constant. 
     node->count = 0; // Number of members in the node
-}
+    }
 
 int addMember(Node *node, Member *Member){
     int idx = node->count; // Next Index of the member Available
     if(idx < MAX_MEMBERS){ // Check if the node is full 
         node->members[idx] = Member; // add pointer to the member to the node
-        node->count++; // Increment the count
+    node->count++; // Increment the count
     } else{
         return -1; // Node is full
     }

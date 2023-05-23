@@ -13,9 +13,6 @@ void uCcpy(char *p,char const *q){
     *p = '\0';
 }
 
-// concantenate buffer q to p return num chars concatnated
-
-
 // Get the length of a string
 unsigned int uStrlen(char *str){
     int len = 0;
@@ -46,15 +43,14 @@ int uCTrunk(char *buf, const char *src, int start, int end){
     //@return: number of characters copied
     int j = 0;
     for(int i = start; i < end;i++){
+        if (src[i] == '\0'){
+            break;
+        }
         buf[j] = src[i];
         j++;
     }
     buf[j] = '\0';
     return j;
-
-    
- 
-
 }
 
 // parse a string into token buf return the number of tokens
@@ -86,9 +82,5 @@ unsigned int hash(char *key, int tableSize){
     }
     return hashValue % tableSize;
 }
-
-
-
-
 
 #endif
