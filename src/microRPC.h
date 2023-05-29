@@ -7,7 +7,6 @@
 
 
 // *** // Static Array Allocation // *** //
-
 const int MAX_CMD_SIZE = 28;
 const int MAX_ARGS = 5;
 const int MAX_SERVICES = 10;
@@ -35,6 +34,7 @@ typedef struct Protocol{
     int numArgs; 
     char delim;
     int maxCmdLen; // excluding '\0'
+    int maxArgLen; // excluding '\0'
     CmdArg cmdFormat[MAX_ARGS];
 }Protocol; // Defines the protocol format for a given interface
 

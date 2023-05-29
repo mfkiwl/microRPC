@@ -23,12 +23,13 @@ int test_service2(Command *cmd,char *response, void *data){
 
 int main(void){
     // ** // Initialize Gateway // ** //
-    Gateway rpc;
-    initRPC(&rpc);
+    Gateway gateway;
+    initRPC(&gateway);
     
     Protocol testproto1 = {
         .numArgs = 4,
         .maxCmdLen = 28,
+        .maxArgLen = 5,
         .delim = ',',
         .cmdFormat = { 
             {.id = "TRGT", .maxSize = 5 },
@@ -40,7 +41,7 @@ int main(void){
 
     Interface testInterface1 = {0};
     createInterface(&testInterface1, "IF1",&testproto1,NULL);
-    addInterface(&rpc, &testInterface1);
+    addInterface(&gateway, &testInterface1);
     Service testService1 = {
         .id = "TS1",
         .desc = "Test Service 1",
@@ -86,30 +87,32 @@ int main(void){
         msg.buf = testcmd[i];
         msg.len = uCsize(msg.buf);
         // Update the command object
-		updateCommand(&Cmd, &msg, &rpc);
+		updateCommand(&Cmd, &msg, &gateway);
 		if (Cmd.valid == 0){
 			printf(RED "Test Case %d: Invalid Command: %s\n" RESET, i, testcmd[i]);
 			clearCommand(&Cmd);
 			continue;
 		}
 		// Execute the command and get the response
-		if(execCommand(&Cmd, &rpc) == -1){
+		if(execCommand(&Cmd, &gateway) == -1){
 			printf(RED "Test Case %d: Invalid Command: %s\n" RESET, i, testcmd[i]);
 			clearCommand(&Cmd);
 			continue;
 		}
 		char response[100] = {0};
 		getServiceResponse(
-			getInterface(&rpc, Cmd.proto->cmdFormat[0].str.buf), 
+			getInterface(&gateway, Cmd.proto->cmdFormat[0].str.buf), 
 			Cmd.proto->cmdFormat[1].str.buf,response);
 
 		printf("Response: %s\n",response);
 		printf("Return: %d\n",getServiceRet(
-			getInterface(&rpc, Cmd.proto->cmdFormat[0].str.buf), 
+			getInterface(&gateway, Cmd.proto->cmdFormat[0].str.buf), 
 			Cmd.proto->cmdFormat[1].str.buf));
 
 		printf(GRN "Test Case %d: Valid Command: %s\n" RESET, i, testcmd[i]);
-		char target[Cmd.proto->cmdFormat[0].maxSize];
+		
+        /*
+        char target[Cmd.proto->cmdFormat[0].maxSize];
 		extractArg(target, Cmd.proto, "TRGT");
 		char serviceID[Cmd.proto->cmdFormat[1].maxSize];
 		extractArg(serviceID, Cmd.proto, "SRVC");
@@ -117,10 +120,15 @@ int main(void){
 		extractArg(param, Cmd.proto, "PRAM");
 		char data[Cmd.proto->cmdFormat[3].maxSize];
 		extractArg(data, Cmd.proto, "DATA");
+        */
+        char cmdArgs[Cmd.proto->numArgs][Cmd.proto->maxArgLen];
+        for(int i = 0; i < Cmd.proto->numArgs; i++){
+        extractArg(cmdArgs[i], Cmd.proto,Cmd.proto->cmdFormat[i].id);
+        }
 
 		printf("| %-10s | %-10s | %-10s | %-10s |\n", "Target", "Service ID", "Param", "Data");
 		printf("|------------|------------|------------|------------|\n");
-		printf("| %-10s | %-10s | %-10s | %-10s |\n", target, serviceID, param, data);
+		printf("| %-10s | %-10s | %-10s | %-10s |\n", cmdArgs[0], cmdArgs[1], cmdArgs[2], cmdArgs[3]);
 
 		clearCommand(&Cmd);
 	}
