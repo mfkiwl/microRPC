@@ -1,287 +1,128 @@
-#include "./include/microRPCTest.h"
+#include "include/microRPCTest.h"
+#include <stdio.h>
 
 
-// ********** // RPC Exposed Services // ********** //
-int RunLed(Command *cmd, char *response, void *data){
-    // Turn on or off the LED
-    char arg[cmd->proto->cmdFormat[1].maxLen+1];
-    extractArg(arg, cmd->proto, "CMD");
-    printf("LED: %s\n", arg);
-    uCcpy(response, "LED ON");
+// Color codes for printing
+#define RED   "\x1B[31m"
+#define GRN   "\x1B[32m"
+#define RESET "\x1B[0m"
+
+
+// *** MICRO RPC TESTS *** //
+
+int test_service1(Command *cmd,char *response, void *data){
+	uCcpy(response, "TS1OK");
     return 0;
 }
 
-int CamShoot(Command *cmd, char *response, void *data){
-    // Take a picture
-    char args[cmd->proto->cmdFormat[3].maxLen+1];
-    extractArg(args, cmd->proto, "DATA");
-    printf("CAM: %s\n", args);
-    uCcpy(response, "CAM SHOOT");
+int test_service2(Command *cmd,char *response, void *data){
+	uCcpy(response, "TS2OK");
     return 0;
 }
 
-int GetData(Command *cmd, char *response, void *data){
-    //@Brief: Gets the data of a member in a config
-    //@Params: cmd - the command object
-    //@Params: response - the response string
-
-    // Extract the required arguments from the command message
-    CmdArg *cmdArg[MAX_ARGS] = {0};
-    for(int i = 0; i < cmd->proto->numArgs; i++){
-        cmdArg[i] = &cmd->proto->cmdFormat[i];
-    }
-    char configKey[MAX_IDLEN];
-    char memberKey[MAX_IDLEN];
-    extractArg(configKey, cmd->proto, cmdArg[2]->id);
-    extractArg(memberKey, cmd->proto, cmdArg[3]->id);
-
-    // User Code
-    // Get the config from the data table
-    LookupTable *dataTable = data;
-    Node *configNode = getNode(dataTable, configKey);
-    if(configNode == 0) return -1; // Config does not exist
-    response  = getMemberData(configNode, memberKey); 
-    printf("GET DATA: %s\n", response);
-    return 0;
-};
-
-int AdjData(Command *cmd, char *response, void *data){
-    //@Brief: Adjusts the in memory data of a member in a config
-    //@Params: cmd - the command object
-    //@Params: response - the response string
-
-    // *** // MICRO RPC PREPROCESSING // *** //
-    // Extract the required arguments from the command message
-    CmdArg *cmdArg[MAX_ARGS] = {0};
-    for(int i = 0; i < cmd->proto->numArgs; i++){
-        cmdArg[i] = &cmd->proto->cmdFormat[i];
-    }
-    // *** // *** // User Data Requirements // *** // *** //
-    char configKey[MAX_IDLEN];
-    char memberKey[MAX_IDLEN];
-    char memberData[cmdArg[4]->maxLen+1];
-    extractArg(configKey, cmd->proto, cmdArg[2]->id);
-    extractArg(memberKey, cmd->proto, cmdArg[3]->id);
-    extractArg(memberData, cmd->proto, cmdArg[4]->id);
-    // **** // *** User Code *** // **** //
-    // Get the config from the data table
-    LookupTable *dataTable = data;
-    Node *configNode = getNode(dataTable, configKey);
-    if(configNode == 0) return -1; // Config does not exist
-    if (adjMemberData(configNode, memberKey, memberData) != 0) return -1; // Member does not exist
-    uCcpy(response, memberData); // update response
-
-    return 0;
-};
-
-int SetData(Command *cmd, char *response, void *data){
-    //@Brief: Sets the in flash data of a member in a config
-    //@Params: cmd - the command object
-    //@Params: response - the response string
-
-     // *** // MICRO RPC PREPROCESSING // *** //
-    // Extract the required arguments from the command message
-    CmdArg *cmdArg[MAX_ARGS] = {0};
-    for(int i = 0; i < cmd->proto->numArgs; i++){
-        cmdArg[i] = &cmd->proto->cmdFormat[i];
-    }
-    // *** // *** // User Data Requirements // *** // *** //
-    char configKey[MAX_IDLEN];
-    char memberKey[MAX_IDLEN];
-    char memberData[cmdArg[4]->maxLen+1];
-    extractArg(configKey, cmd->proto, cmdArg[2]->id);
-    extractArg(memberKey, cmd->proto, cmdArg[3]->id);
-    extractArg(memberData, cmd->proto, cmdArg[4]->id);
-    // **** // *** User Code *** // **** //
-    // Get the config from the data table
-    LookupTable *dataTable = data;
-    Node *configNode = getNode(dataTable, configKey);
-    if(configNode == 0) return -1; // Config does not exist
-    if (setMemberData(configNode, memberKey, memberData) != 0) return -1; // Member does not exist
-    uCcpy(response, memberData); // update response
-
-    return 0;
-};
-
-
-
-void printSizes(RPC *rpc, LookupTable *dataTable, Command *cmd){
-    printf("\nObject\t\t|Size\t|Address\t|\n");
-    printf("-----------------------------------------\n");
-    printf("RPC\t\t|%lu\t|%p\t|\n", sizeof(*rpc), rpc);
-    printf("LookupTable\t|%lu\t|%p\t|\n", sizeof(*dataTable), dataTable);
-    printf("Command\t\t|%lu\t|%p|\t\n", sizeof(*cmd), cmd);
-
-    printf("Number of Data Nodes: %d\n", dataTable->count);
-
-    for(int i = 0; i < NUM_NODES; i++){
-        if(dataTable->nodes[i] == 0) continue;
-        printf("\nData Node\t|Size\t|Address\t|\n");
-        printf("-----------------------------------------\n");
-        printf("\n%s\t\t|%lu\t|%p\t|\n",dataTable->nodes[i]->key, sizeof(*dataTable->nodes[i]), dataTable->nodes[i]);
-        printf("\n\tMember\t|Value\t\t|Size\t|Address\t\n");
-        printf("\t-------------------------------------------------\n");
-        for(int j = 0; j < dataTable->nodes[i]->count; j++){
-            if (dataTable->nodes[i]->members[j] == 0) continue;
-            printf("\n\t%s\t|%s\t|%lu\t|%p\t|\n",
-            dataTable->nodes[i]->members[j]->key, 
-            dataTable->nodes[i]->members[j]->data,
-            sizeof(Member), dataTable->nodes[i]->members[j]);
-        }
-    }
-    printf("Number of Interfaces: %d\n", rpc->count);
-    
-    for(int i = 0; i < MAX_INTERFACES; i ++){
-        if (rpc->interfaces[i] == 0) continue;
-        printf("\nInterface\t|Size\tAddress\t|\n");
-        printf("-------------------------------------------------\n"); 
-        printf("%s\t\t|%lu\t%p\n",rpc->interfaces[i]->id, sizeof(Interface), rpc->interfaces[i]);
-        printf("\n\tService\t|Size\tAddress\t|\n");
-        printf("\t-------------------------------------------------\n");
-        for(int j = 0; j < MAX_SERVICES; j++){
-            if (rpc->interfaces[i]->services[j] == 0) continue;
-            printf("\t%s\t|%lu\t%p\n",
-            rpc->interfaces[i]->services[j]->key, 
-            sizeof(rpc->interfaces[i]->services[j]), 
-            rpc->interfaces[i]->services[j]);
-
-
-        }
-    }
-
-}
 
 int main(void){
-
-    // ********** // Data Setup // ********** //
-    LookupTable dataTable;
-    initLookupTable(&dataTable, NUM_NODES);
-    Node wifiConfig;
-    createNode(&wifiConfig, "WIFI");
-    Member ssid = {.key = "SSID", .data = "mySSID"};
-    Member pask = {.key = "PASS",.data = "myPASS"};
-    Member ip = {.key = "IP",.data = "192.1681.100"};
-    addMember(&wifiConfig, &ssid);
-    addMember(&wifiConfig, &pask);
-    addMember(&wifiConfig, &ip);
-    Node camConfig;
-    createNode(&camConfig, "CAM");
-    Member res = {.key = "RES", .data = "640x480"};
-    Member qual = {.key = "QUAL", .data = "100"};
-    addMember(&camConfig, &res);
-    addMember(&camConfig, &qual);
-    Node devConfig;
-    createNode(&devConfig, "DEVC");
-    Member name = {.key = "NAME", .data = "myDevice"};
-    Member id = {.key = "ID",.data = "123456789"};
-    addMember(&devConfig, &name);
-    addMember(&devConfig, &id);
-    addNode(&dataTable, &wifiConfig);
-    addNode(&dataTable, &camConfig);
-    addNode(&dataTable, &devConfig);
-
-// ********** // RPC Setup // ********** //
-    RPC Rpc;
-    initRPC(&Rpc);
-// Define a Protocol for each Message Type Required
-    Protocol taskProto = {
-        // Defines the protocol for the TASK interface
-        .delim = ',',
-        .cmdFormat = {
-            { .id = "TRGT", .type = CHAR, .maxLen = TARGET_ARG_LEN},
-            { .id = "CMD", .type = CHAR, .maxLen = 4},
-            { .id = "TIME", .type = INT, .maxLen = 2},
-            { .id = "DATA", .type = STR, .maxLen = 15},
-        },
-        .numArgs = 4,
-    };
-    initProtocol(&taskProto);
-    Protocol dataProto = {
-        // Defines the protocol for the DATA interface
-        .delim = ',',
-        .cmdFormat = {
-            { .id = "TRGT", .type = CHAR, .maxLen = TARGET_ARG_LEN},
-            { .id = "CMD", .type = CHAR, .maxLen = 4},
-            { .id = "CNFG", .type = CHAR, .maxLen = 4},
-            { .id = "MEBR", .type = INT, .maxLen = 4},
-            { .id = "DATA", .type = STR, .maxLen = 15}
-        },
-        .numArgs = 5,
-    };
-    initProtocol(&dataProto);
-// Define the Interfaces Each Interface has a Protocol
-    Interface Tasks;
-    createInterface(&Tasks, "TASK", &taskProto, &dataTable);
-    addInterface(&Rpc, &Tasks);
-    Interface Data;
-    createInterface(&Data, "DATA", &dataProto, &dataTable);
-    addInterface(&Rpc, &Data);
-// Define the Services Each Service has a Function
-    Service RunLedService = {
-        .key = "LED",
-        .desc = "Turns on or off the LED",
-        .func = &RunLed,
-        .ret = 0
-    };
-    Service CamShootService = {
-        .key = "CAM",
-        .desc = "Takes a picture",
-        .func = &CamShoot,
-        .ret = 0
-    };
-    registerService(&Tasks, &RunLedService);
-    registerService(&Tasks, &CamShootService);
-    Service GetDataService = {
-        .key = "GET",
-        .desc = "Gets member data from a config",
-        .func = &GetData,
-        .ret = 0
-    };
-    Service AdjDataService = {
-        .key = "ADJ",
-        .desc = "Adjusts the data of a member in a config",
-        .func = &AdjData,
-        .ret = 0
-    };
-    Service SetDataService = {
-        .key = "SET",
-        .desc = "Sets the data of a member in a config",
-        .func = &SetData,
-        .ret = 0
-    };
-    registerService(&Data, &GetDataService);
-    registerService(&Data, &AdjDataService);
-    registerService(&Data, &SetDataService);
-
-
-
-
-
-
-
-
-
-// ********** // RPC Test // ********** //
-    Command Cmd = {0};
-    String msg = {0};
-
-    // Memory Size test
-    printSizes(&Rpc,&dataTable, &Cmd);
-    char buf[MAX_CMDLEN] = {0};
-    for(int i =0; i < 10; i++){
-        printf("Enter a command: \n");
-        scanf("%s", buf);
+    // ** // Initialize Gateway // ** //
+    Gateway rpc;
+    initRPC(&rpc);
     
-        msg.buf = buf;
-        msg.len = uStrlen(msg.buf);
-        // Update the command object
-        updateCommand(&Cmd, &msg, &Rpc);
-        if(Cmd.valid == 0) {
-            printf("Invalid Command\n");
-            continue;
+    Protocol testproto1 = {
+        .numArgs = 4,
+        .maxCmdLen = 28,
+        .delim = ',',
+        .cmdFormat = { 
+            {.id = "TRGT", .maxSize = 5 },
+            {.id = "SRVC", .maxSize = 5 },
+            {.id = "PRAM", .maxSize = 5 },
+            {.id = "DATA", .maxSize = 5 }
         }
-        execCommand(&Cmd, &Rpc);
-    }
+    };
 
-    return 0;    
+    Interface testInterface1 = {0};
+    createInterface(&testInterface1, "IF1",&testproto1,NULL);
+    addInterface(&rpc, &testInterface1);
+    Service testService1 = {
+        .id = "TS1",
+        .desc = "Test Service 1",
+        .func = &test_service1,
+        .response = "\0",
+        .ret = 0,
+    };
+    Service testService2 = {
+        .id = "TS2",
+        .desc = "Test Service 2",
+        .func = &test_service2,
+        .response = "\0",
+        .ret = 0,
+    };
+    registerService(&testInterface1, &testService1);
+    registerService(&testInterface1, &testService2);
+
+    // ** // Run Tests // ** //
+    // ********** // Gateway Test // ********** //
+    Command Cmd = {0};
+    Message msg = {0};
+	const int NUM_TEST = 14;
+
+    char testcmd[NUM_TEST][100] = {
+    	"IF1,TS1,0,D", // Test Case 0: Valid Min
+        "IF1,TS1,0000,DATA", // Test Case 1: Valid Max
+		"IF1,TS1,0000", // Test Case 2: Missing Argument
+        "IF1,TS1,", // Test Case 3: Missing Arguments
+        "IF1,TS1,,DATA", // Test Case 4: Invalid Min on single argument
+        "IF1,TS1,,", // Test Case 5: Invalid Min on all argument
+		"IF1,TS1,0000,DATA,Extra", // Test Case 6: Invalid Max with extra argument
+		"IF1,TS1,00000,DATA", // Test Case 7: Invalid Max on single argument
+        "IF1,TS1,00000,DATAE", // Test Case 8: Invalid Max on all argument
+        "IF1,TSx,0000,DATA", // Test Case 9: Invalid Service
+        "IFx,TS1,0000,DATA", // Test Case 10: Invalid Interface
+        "IF,TS1,0000,DATA", // Test Case 11: Invalid Interface
+		"IF1,TS1,0000,DATA,ExtraExtraExtra", // Test Case 12: Invalid MaxCmdLen
+		"", // Test Case 13: Invalid Empty
+
+    };
+
+    for(int i =0; i < NUM_TEST; i++){
+        msg.buf = testcmd[i];
+        msg.len = uCsize(msg.buf);
+        // Update the command object
+		updateCommand(&Cmd, &msg, &rpc);
+		if (Cmd.valid == 0){
+			printf(RED "Test Case %d: Invalid Command: %s\n" RESET, i, testcmd[i]);
+			clearCommand(&Cmd);
+			continue;
+		}
+		// Execute the command and get the response
+		if(execCommand(&Cmd, &rpc) == -1){
+			printf(RED "Test Case %d: Invalid Command: %s\n" RESET, i, testcmd[i]);
+			clearCommand(&Cmd);
+			continue;
+		}
+		char response[100] = {0};
+		getServiceResponse(
+			getInterface(&rpc, Cmd.proto->cmdFormat[0].str.buf), 
+			Cmd.proto->cmdFormat[1].str.buf,response);
+
+		printf("Response: %s\n",response);
+		printf("Return: %d\n",getServiceRet(
+			getInterface(&rpc, Cmd.proto->cmdFormat[0].str.buf), 
+			Cmd.proto->cmdFormat[1].str.buf));
+
+		printf(GRN "Test Case %d: Valid Command: %s\n" RESET, i, testcmd[i]);
+		char target[Cmd.proto->cmdFormat[0].maxSize];
+		extractArg(target, Cmd.proto, "TRGT");
+		char serviceID[Cmd.proto->cmdFormat[1].maxSize];
+		extractArg(serviceID, Cmd.proto, "SRVC");
+		char param[Cmd.proto->cmdFormat[2].maxSize];
+		extractArg(param, Cmd.proto, "PRAM");
+		char data[Cmd.proto->cmdFormat[3].maxSize];
+		extractArg(data, Cmd.proto, "DATA");
+
+		printf("| %-10s | %-10s | %-10s | %-10s |\n", "Target", "Service ID", "Param", "Data");
+		printf("|------------|------------|------------|------------|\n");
+		printf("| %-10s | %-10s | %-10s | %-10s |\n", target, serviceID, param, data);
+
+		clearCommand(&Cmd);
+	}
+	return 0;
 }

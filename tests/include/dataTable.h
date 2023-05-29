@@ -1,12 +1,13 @@
 #ifndef __DATATABLE_H__
 #define __DATATABLE_H__
 
-#include "helpers.h"
+#include "../../include/helpers.h"
 /* Example implementation of a hash table storig config data keys and values */
 
 // Lookup Table Definitions
 #define NUM_NODES  10 //  Number of nodes in the Lookup Table
 #define MAX_MEMBERS  4 // Maximum number of members per node
+#define DATA_MAX_LEN  10 // Maximum length of data
 #define KEY_LEN  5 // Maximum length of a key
 
 
@@ -14,15 +15,15 @@
 
 
 typedef struct Member{
-    char key[KEY_LEN]; 
+    char id[KEY_LEN]; 
     char data[DATA_MAX_LEN]; 
-} Member; // Maps Data to a key
+} Member; // Maps Data to a id
 
 typedef struct Node{
-    char key[KEY_LEN]; 
+    char id[KEY_LEN]; 
     Member *members[MAX_MEMBERS]; 
     int count; 
-} Node; // Holds Homogeneous data key links
+} Node; // Holds Homogeneous data id links
 
 typedef struct LookupTable{
     Node *nodes[NUM_NODES]; 
@@ -37,8 +38,8 @@ void initLookupTable(LookupTable *table, int numNodes){
     table->count = 0;
 }
 
-void createNode(Node *node, char *key){
-    uCcpy(node->key,key); // Copy to the key as we need to keep the key constant. 
+void createNode(Node *node, char *id){
+    uCcpy(node->id,id); // Copy to the id as we need to keep the id constant. 
     node->count = 0; // Number of members in the node
     }
 
@@ -58,7 +59,7 @@ int addNode(LookupTable *table, Node *node){
     if (table->count >= NUM_NODES){
         return -1; // Table is full
     }
-    int index = hash(node->key,NUM_NODES); // Get the index of the node
+    int index = hash(node->id,NUM_NODES); // Get the index of the node
     if (table->nodes[index] != 0){
         return -1; // Node already exists at the index
     }
@@ -67,20 +68,20 @@ int addNode(LookupTable *table, Node *node){
     return 0;
 }
 
-char *getMemberData(Node *node, char *key){
+char *getMemberData(Node *node, char *id){
     // Return the pointer to the member value
     for(int i = 0; i < node->count; i++){
-        if (uStrcmp(node->members[i]->key,key) == 0){
+        if (uStrcmp(node->members[i]->id,id) == 0){
             return node->members[i]->data; // Return the data
         }
     }
     return 0; // Member does not exist
 }
 
-int setMemberData(Node *node, char *key, char *data){
+int setMemberData(Node *node, char *id, char *data){
     // Set the value of a member
     for(int i = 0; i < node->count; i++){
-        if (uStrcmp(node->members[i]->key,key) == 0){
+        if (uStrcmp(node->members[i]->id,id) == 0){
             uCcpy(node->members[i]->data,data); // Copy the data to the member
             return 0;
         }
@@ -88,18 +89,18 @@ int setMemberData(Node *node, char *key, char *data){
     return -1; // Member does not exist
 }
 
-int adjMemberData(Node *node, char *key, char *data){
+int adjMemberData(Node *node, char *id, char *data){
     // Adjust the value of a member
     //placeholder
-    if(setMemberData(node,key,data) !=0){
+    if(setMemberData(node,id,data) !=0){
         return -1;// Member does not exist
     }
     return 0; 
 }
 
-Node *getNode(LookupTable *table, char *key){
+Node *getNode(LookupTable *table, char *id){
     // Return the pointer to the node
-    int index = hash(key,NUM_NODES);
+    int index = hash(id,NUM_NODES);
     if (index >= NUM_NODES){
         return 0; // Node index is out of range
     }

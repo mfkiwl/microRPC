@@ -1,29 +1,40 @@
 #ifndef __HELPERS_H__
 #define __HELPERS_H__
 
-#define MSG_ARGS 4
-#define DATA_MAX_LEN 15
 // ** // *** HELPER FUNCTIONS *** // ** //
 
-// copy a buffer to another buffer
+// Key Terms:
+// - CSize: Size of a char array including the null terminator
+// - Strlen: Length of a char array not including the null terminator
+// - Trunk: Copy a segment of a char array + null terminator to a buffer
+// - Split: Copy a of a char array up to a delimiter + null terminator 
+// - Cpy: Copy a char array + null terminator to a buffer
+// - Cmp: Compare two char arrays
+
+
+
+unsigned int uCsize(char *str){
+    //@brief: Return the size of a string 
+    //@Note:  Includes the null terminator
+    int len = 0;
+    while(*str++ != '\0'){
+        len++;
+    }
+    return len + 1;
+}
+
 void uCcpy(char *p,char const *q){
+    //@brief: copy a string from q to p
+    //@note: Buffer overflow is not checked
     while(*q != '\0'){
         *p++ = *q++;
     }
     *p = '\0';
 }
 
-// Get the length of a string
-unsigned int uStrlen(char *str){
-    int len = 0;
-    while(*str++ != '\0'){
-        len++;
-    }
-    return len;
-}
-
-// Compare two strings
 int uStrcmp(char *str1, char *str2){
+    //@brief: compare two strings
+    //@return: 0 if equal, 1 if not equal
     while(*str1 != '\0' && *str2 != '\0'){
         if(*str1 != *str2){
             return 1;
@@ -34,47 +45,45 @@ int uStrcmp(char *str1, char *str2){
     return 0;
 }
 
-// Copy a Trunkaed string interval to a buffer
-int uCTrunk(char *buf, const char *src, int start, int end){
-    //@breif: copy a segment of a string to a buffer
-    //@param: buf - buffer to copy to
-    //@param: src - string to copy from
-    //@param: segment - array of two integers, the start and end of the segment
-    //@return: number of characters copied
+int uCSplit(char *buf, char *src, char delim, int start){
+    //@brief: copy a string to a buffer until a delimiter is found
+    //@return: the index of the next character after the delimiter
     int j = 0;
-    for(int i = start; i < end;i++){
-        if (src[i] == '\0'){
+    for(int i = start; src[i] != '\0';i++){
+        if (src[i] == delim){
             break;
         }
         buf[j] = src[i];
         j++;
     }
     buf[j] = '\0';
+    return j+1;
+}
+
+int uCTrunk(char *buf, const char *src, int startIdx, int endIdx){
+    //@brief: copy a string segment to a buffer
+    //@return: number of characters copied excluding '\0'
+    //@note: Null terminatior is inserted
+    //@note: buffer overflow is not checked
+    
+    int j = 0; // buffer index
+    for(int i = startIdx; i < endIdx;i++){
+        if (src[i] == '\0'){
+            break;
+        }
+        buf[j] = src[i];
+        j++;
+    }
+    buf[j] = '\0'; 
     return j;
 }
 
-// parse a string into token buf return the number of tokens
-int uParse(char *src, char *tokens[DATA_MAX_LEN], char delim) {
-    int i = 0, j = 0, k = 0;
-    while (src[i] != '\0' && k < MSG_ARGS) {
-        if (src[i] == delim) {
-            tokens[k][j] = '\0';
-            k++;
-            j = 0;
-        } else {
-            tokens[k][j] = src[i];
-            j++;
-        }
-        i++;
-    }
-    tokens[k][j] = '\0';
-    return k + 1;
-}
+
 
 // Hash Function for the table
 unsigned int hash(char *key, int tableSize){
     int m = 31;
-    unsigned int len = uStrlen(key); 
+    unsigned int len = uCsize(key); 
     unsigned int hashValue = 0;
     for(int i = 0; i < len; i++){
         hashValue = (hashValue * m + key[i]);
