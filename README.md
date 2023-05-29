@@ -61,8 +61,8 @@ Re-define the static char buffer sizes, in either the header file or in your pro
 to suit your needs.
 ```c
 // Re define the static char buffer sizes
-#define MAX_CMD_LEN 28
-#define MAX_ARG_LEN 5
+#define MAX_CMD_SIZE 28
+#define MAX_ARG_SIZE 5
 #define MAX_ARGS 5
 #define MAX_SERVICES 5
 #define MAX_INTERFACES 5
